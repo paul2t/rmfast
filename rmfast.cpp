@@ -1,143 +1,119 @@
 #include <windows.h>
 #include <cstdio>
-#include <cstring>
 #include "directory.h"
 
-#if APP_INTERNAL
-#include <stdint.h>
-static uint64_t file_count = 0;
-static uint64_t file_error_count = 0;
+// Global variable to preserve stack space
+// We only need one of these at a time
+// It will be more cache friendly
+static WIN32_FIND_DATAA find_data;
 
-static uint64_t dir_count = 0;
-static uint64_t dir_error_count = 0;
-#endif
+
+// @return the length of the new dst
+inline size_t str_copy(char* dst, size_t dst_size, char* src)
+{
+	size_t i = 0;
+	for (; i < dst_size; ++i)
+	{
+		dst[i] = src[i];
+		if (dst[i] == 0) break;
+	}
+	dst[i] = 0;
+	return i;
+}
+
+// @return the length of the new dst
+inline size_t str_append(char* dst, size_t dst_len, size_t dst_size, char* src)
+{
+	size_t i = 0;
+	for (; i < dst_size; ++i)
+	{
+		dst[dst_len+i] = src[i];
+		if (dst[i] == 0) break;
+	}
+	dst[i] = 0;
+	return i;
+}
 
 #define PATH_MAX_SIZE 4096
 
-static bool rm_dir(char* path, size_t path_len);
+static void rm_dir(char* path, size_t path_len);
 
-inline bool rm(Directory* file, char* path, size_t path_len)
+inline void rm(Directory* file, char* path, size_t path_len)
 {
-	bool result;
 	if (!isDir(file))
 	{
 		BOOL res = DeleteFileA(path);
-		result = res != 0;
 		if (!res)
 		{
 			fprintf(stderr, "Failed to delete file \"%s\"\n", path);
 		}
-#if APP_INTERNAL
-		else
-		{
-			fprintf(stderr, "Deleted file   \"%s\"\n", path);
-		}
-		file_count++;
-		file_error_count += (res == 0);
-#endif
 	}
 	else
 	{
 		path[path_len] = '\\';
-		result = rm_dir(path, path_len+1);
+		rm_dir(path, path_len+1);
 	}
-	return result;
 }
 
-// @param path must be terminated with '\\'
-static bool rm_dir(char* path, size_t path_len)
+// @param path must end with '\\'
+static void rm_dir(char* path, size_t path_len)
 {
 	path[path_len] = '*';
 	path[path_len+1] = 0;
-#if APP_INTERNAL
-	printf("searching \"%s\"\n", path);
-#endif
-	bool result = true;
 	Directory file;
+	file.data = &find_data;
 	for (dfind(&file, path);
 				file.found;
 				dnext(&file))
 	{
+		// Can we remove this ? It seems that '.' and '..' are found first
+		// They are already skipped by dfind()
+		// I am afraid this might change and break and remove everything.
+		// Removing this could potentially be very dangerous.
 		if (isThisOrParentDir(&file)) continue;
-		path[path_len] = 0;
-		strcat_s(path, PATH_MAX_SIZE, file.name);
-		size_t subpath_len = path_len + strlen(file.name);
-		bool res = rm(&file, path, subpath_len);
-		result = result && res;
+
+		size_t subpath_len = str_append(path, path_len, PATH_MAX_SIZE, dName(&file));
+		rm(&file, path, subpath_len);
 	}
 	dclose_fast(&file);
 	path[path_len-1] = 0;
 	BOOL res = RemoveDirectoryA(path);
-	result = result && res != 0;
 	if (!res)
 	{
 		fprintf(stderr, "Failed to delete folder \"%s\"\n", path);
 	}
-#if APP_INTERNAL
-	else
-	{
-		fprintf(stderr, "Deleted folder \"%s\"\n", path);
-	}
-	dir_count++;
-	dir_error_count += (res == 0);
-#endif
-	return result;
 }
 
-static bool rm(char* path, size_t path_len)
+static void rm(char* path, size_t path_len)
 {
-	bool found = false;
 	Directory file;
+	file.data = &find_data;
 	dfind(&file, path);
-	bool result = true;
 	for (;
 		file.found;
 		dnext(&file))
 	{
 		if (isThisOrParentDir(&file)) continue;
-		bool res = rm(&file, path, path_len);
-		result = result && res;
-		found = true;
+		rm(&file, path, path_len);
 	}
-	result = result && found;
 	
-#if APP_INTERNAL
-	if (!found)
-	{
-		fprintf(stderr, "Failed to delete \"%s\"\n", path);
-	}
-	else if (!result)
-	{
-		fprintf(stderr, "Paritally deleted \"%s\"\n", path);
-	}
-	#endif
-
 	dclose_fast(&file);
-	return result;
 }
 
 int main(int argc, char** argv)
 {
 	if (argc < 2)
 	{
-		fprintf(stderr, "Please specify a folder or a file to delete.\n");
-		return 1;
+		return 0;
 	}
 
-	char* path = (char*)malloc(PATH_MAX_SIZE);
+	char path[PATH_MAX_SIZE];
 	
-	bool result = true;
 	for (int ai = 1; ai < argc; ++ai)
 	{
-		strcpy_s(path, PATH_MAX_SIZE, argv[ai]);
-#if APP_INTERNAL
-		fprintf(stderr, "Path \"%s\"\n", path);
-#endif
-		bool res = rm(path, strlen(path));
-		result = result && res;
+		size_t path_len = str_copy(path, PATH_MAX_SIZE, argv[ai]);
+		rm(path, path_len);
 	}
 
-#if APP_INTERNAL
-	printf("%llu/%llu files failed\n%llu/%llu folders failed\n", file_error_count, file_count, dir_error_count, dir_count);
-#endif
+	return 0;
 }
