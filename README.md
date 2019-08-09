@@ -9,7 +9,7 @@ Removing 50,000 files in 150 folders:
 `rd /Q /S` : 23.5 seconds  
 `rmfast`   : 19.0 seconds  
 
-`rmfast` is 19% faster than `rd` and 32% faster than `Windows Explorer`.
+`rmfast` is 19% faster than `rd` and 68% faster than `Windows Explorer`.
 
 
 # TODO
