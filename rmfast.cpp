@@ -65,7 +65,7 @@ inline size_t str_append(char* dst, size_t dst_len, size_t dst_size, char* src)
 	return i;
 }
 
-#define PATH_MAX_SIZE 4096
+#define PATH_MAX_SIZE 32767*2
 
 static void rm_dir(char* path, size_t path_len);
 
@@ -92,7 +92,7 @@ static void rm_dir(char* path, size_t path_len)
 	// TODO: need to check dst_size
 	path[path_len] = '*';
 	path[path_len+1] = 0;
-	
+
 	Directory file;
 	file.data = &find_data;
 	for (dfind(&file, path);
@@ -150,7 +150,7 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
-	char path[PATH_MAX_SIZE+1];
+	char* path = (char*)malloc(PATH_MAX_SIZE+1);
 	
 	for (int ai = 1; ai < argc; ++ai)
 	{
