@@ -2,11 +2,6 @@
 #include <cstdio>
 #include "directory.h"
 
-// Global variable to preserve stack space
-// We only need one of these at a time
-// It will be more cache friendly
-static WIN32_FIND_DATAA find_data;
-
 
 inline bool is_path_separator(char c)
 {
@@ -65,12 +60,23 @@ inline size_t str_append(char* dst, size_t dst_len, size_t dst_size, char* src)
 	return i;
 }
 
+inline void disable_read_only(Directory* d, char* path)
+{
+	DWORD attributes = d->data->dwFileAttributes;
+	if (attributes & FILE_ATTRIBUTE_READONLY)
+	{
+		attributes = (attributes & (~FILE_ATTRIBUTE_READONLY));
+		SetFileAttributesA(path, attributes);
+	}
+}
+
 #define PATH_MAX_SIZE 32767*2
 
 static void rm_dir(char* path, size_t path_len);
 
 inline void rm(Directory* file, char* path, size_t path_len)
 {
+	disable_read_only(file, path);
 	if (!isDir(file))
 	{
 		BOOL res = DeleteFileA(path);
@@ -93,8 +99,7 @@ static void rm_dir(char* path, size_t path_len)
 	path[path_len] = '*';
 	path[path_len+1] = 0;
 
-	Directory file;
-	file.data = &find_data;
+	Directory file = {};
 	for (dfind(&file, path);
 		file.found;
 		dnext(&file))
@@ -128,8 +133,7 @@ static void rm(char* path, size_t path_len)
 	while (folder_len > 0 && !is_path_separator(path[folder_len-1])) --folder_len;
 	if (folder_len) folder_len++;
 
-	Directory file;
-	file.data = &find_data;
+	Directory file = {};
 	for (dfind(&file, path);
 		file.found;
 		dnext(&file))
