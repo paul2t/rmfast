@@ -2,6 +2,7 @@
 #include <cstdio>
 #include "directory.h"
 
+#define SIMUL 0
 
 inline bool is_path_separator(char c)
 {
@@ -79,11 +80,15 @@ inline void rm(Directory* file, char* path, size_t path_len)
 	disable_read_only(file, path);
 	if (!isDir(file))
 	{
+#if SIMUL
+		fprintf(stderr, "Deleting file \"%s\"\n", path);
+#else
 		BOOL res = DeleteFileA(path);
 		if (!res)
 		{
 			fprintf(stderr, "Failed to delete file \"%s\"\n", path);
 		}
+#endif
 	}
 	else
 	{
@@ -109,11 +114,15 @@ static void rm_dir(char* path, size_t path_len)
 	}
 	dclose_fast(&file);
 	path[path_len-1] = 0;
+#if SIMUL
+		fprintf(stderr, "Deleting folder \"%s\"\n", path);
+#else
 	BOOL res = RemoveDirectoryA(path);
 	if (!res)
 	{
 		fprintf(stderr, "Failed to delete folder \"%s\"\n", path);
 	}
+#endif
 }
 
 static void rm(char* path, size_t path_len)
