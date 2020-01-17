@@ -143,6 +143,7 @@ int main(int argc, char** argv)
 {
 	if (argc < 2)
 	{
+		fprintf(stderr, "usage: rmfast path [path2 ...]\n");
 		return 0;
 	}
 
