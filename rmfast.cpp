@@ -134,7 +134,6 @@ static void rm(char* path, size_t path_len)
 	// Find the root folder of the search
 	size_t folder_len = path_len;
 	while (folder_len > 0 && !is_path_separator(path[folder_len-1])) --folder_len;
-	if (folder_len) folder_len++;
 
 	Directory file = {};
 	for (dfind(&file, path);
