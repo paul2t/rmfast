@@ -104,12 +104,6 @@ static void rm_dir(char* path, size_t path_len)
 		file.found;
 		dnext(&file))
 	{
-		// Can we remove this ? It seems that '.' and '..' are found first
-		// They are already skipped by dfind()
-		// I am afraid this might change and break and remove everything.
-		// Removing this could potentially be very dangerous.
-		if (isThisOrParentDir(&file)) continue;
-
 		size_t subpath_len = str_append(path, path_len, PATH_MAX_SIZE, dName(&file));
 		rm(&file, path, subpath_len);
 	}
@@ -138,8 +132,6 @@ static void rm(char* path, size_t path_len)
 		file.found;
 		dnext(&file))
 	{
-		if (isThisOrParentDir(&file)) continue;
-
 		size_t file_len = str_append(path, folder_len, PATH_MAX_SIZE, dName(&file));
 		rm(&file, path, file_len);
 	}

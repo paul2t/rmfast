@@ -37,7 +37,10 @@ inline int isReadOnly(Directory* d)
 
 inline void dnext(Directory* d)
 {
-    d->found = FindNextFile(d->_findHandle, d->data);
+    do
+    {
+        d->found = FindNextFile(d->_findHandle, d->data);
+    } while (d->found && isThisOrParentDir(d));
 }
 
 inline void dnextFile(Directory* d)
@@ -74,7 +77,7 @@ inline void dfind_(Directory* d, char* searchPath)
 inline void dfind(Directory* d, char* searchPath)
 {
     dfind_(d, searchPath);
-    while(d->found && isDir(d) && isThisOrParentDir(d))
+    if (d->found && isThisOrParentDir(d))
     {
         dnext(d);
     }
@@ -83,7 +86,7 @@ inline void dfind(Directory* d, char* searchPath)
 inline void dfindDir(Directory* d, char* searchPath)
 {
     dfind_(d, searchPath);
-    while(d->found && (!isDir(d) || isThisOrParentDir(d)))
+    while (d->found && !isDir(d))
     {
         dnext(d);
     }
@@ -92,7 +95,7 @@ inline void dfindDir(Directory* d, char* searchPath)
 inline void dfindFile(Directory* d, char* searchPath)
 {
     dfind_(d, searchPath);
-    while(d->found && isDir(d))
+    while (d->found && isDir(d))
     {
         dnext(d);
     }
