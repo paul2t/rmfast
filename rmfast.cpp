@@ -4,6 +4,12 @@
 
 #define SIMUL 0
 
+#define COUNTER 0
+#if COUNTER
+int folder_count = 0;
+int file_count = 0;
+#endif
+
 inline bool is_path_separator(char c)
 {
 	return c == '\\' || c == '/';
@@ -80,6 +86,9 @@ inline void rm(Directory* file, char* path, size_t path_len)
 	disable_read_only(file, path);
 	if (!isDir(file))
 	{
+#if COUNTER
+		file_count++;
+#endif
 #if SIMUL
 		fprintf(stderr, "Deleting file \"%s\"\n", path);
 #else
@@ -114,6 +123,9 @@ static void rm_dir(char* path, size_t path_len)
 	}
 	dclose_fast(&file);
 	path[path_len-1] = 0;
+#if COUNTER
+	folder_count++;
+#endif
 #if SIMUL
 		fprintf(stderr, "Deleting folder \"%s\"\n", path);
 #else
@@ -162,6 +174,10 @@ int main(int argc, char** argv)
 		size_t path_len = str_copy_escape(path, PATH_MAX_SIZE, argv[ai]);
 		rm(path, path_len);
 	}
+
+#if COUNTER
+	fprintf(stderr, "Deleted %d files in %d folders\n", file_count, folder_count);
+#endif
 
 	return 0;
 }
